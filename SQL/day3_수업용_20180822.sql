@@ -478,15 +478,137 @@ FROM EMPLOYEE
 GROUP BY DEPT_CODE
 HAVING AVG(SALARY) > 3000000;
 
+-- 10. 실습
+-- 부서별 그룹의 급여 합계 중 900만원을 초과하는
+-- 부서의 코드와 급여 합계를 조회하시오
+SELECT 
+    DEPT_CODE,
+    TO_CHAR(SUM(SALARY),'L99,999,999')
+FROM EMPLOYEE
+GROUP BY 
+    DEPT_CODE
+HAVING SUM(SALARY) > 9000000
+ORDER BY 
+    DEPT_CODE;
+    
+    
+-- 11. 실습
+-- 급여의 합계가 가장 높은 부서를 찾고,
+-- 해당 부서의 부서 코드와 급여 합계를 구하시오,
+SELECT
+    DEPT_CODE,
+    SUM(SALARY)
+FROM EMPLOYEE
+GROUP BY
+    DEPT_CODE;
+    
+SELECT
+    DEPT_CODE,
+    SUM(SALARY)
+FROM EMPLOYEE
+GROUP BY
+    DEPT_CODE
+HAVING
+    SUM(SALARY) = 17700000;
 
 
+-- SUB QUERY -- 
+    
+
+SELECT
+    DEPT_CODE,
+    SUM(SALARY)
+FROM EMPLOYEE
+GROUP BY
+    DEPT_CODE
+HAVING
+    SUM(SALARY) = (
+        SELECT
+            MAX(SUM(SALARY))
+        FROM 
+            EMPLOYEE
+        GROUP BY
+            DEPT_CODE
+    );
+    
+    
+-- 집계 함수 --
 
 
+-- ROLLUP : 특정 그룹별 중간 집계 및 총 집계를 산출하는 함수
+-- GROUP BY 구문에서만 사용한다.
+-- 그룹 별로 묶인 값들에 대해서 총 집계 값을 자동으로 계산해 준다.
+
+-- 직급 별 급여 합계
+SELECT JOB_CODE 직급,
+        SUM(SALARY) 급여합계
+FROM EMPLOYEE
+GROUP BY ROLLUP(JOB_CODE)
+ORDER BY 1;
 
 
+-- CUBE : 특정 그룹별 자동 집계를 제공하는 함수
+-- GROUP BY 구문에서만 사용하며,
+-- 각각의 소계 및 총 합계를 자동으로 산출 해준다.
+SELECT JOB_CODE 직급,
+        SUM(SALARY) 급여합계
+FROM EMPLOYEE
+GROUP BY CUBE(JOB_CODE)
+ORDER BY 1;
+
+-- ROLLUP 과 CUBE는 사용형식이 다르지만
+-- 한 개의 컬럼에 대한 그룹 집계를 계산할 때에는
+-- 동일한 결과가 나온다.
+
+-- 다중 그룹 지정하기
+-- ROLLUP을 사용할 경우
+-- 인자로 전달한 컬럼 그룹 중 가장 먼저 지정한
+-- 그룹별 집계와 총 합계를 기준으로 동작한다.
+SELECT DEPT_CODE, JOB_CODE, SUM(SALARY)
+FROM EMPLOYEE
+GROUP BY ROLLUP(DEPT_CODE, JOB_CODE)
+ORDER BY 1, 2;
+
+-- 그룹으로 지정된 모든 그룹에 대한 집계를 계산하여 각 그룹간 집계,
+-- 전체 집계를 각각 산출하는 함수
+SELECT DEPT_CODE, JOB_CODE, SUM(SALARY)
+FROM EMPLOYEE
+GROUP BY CUBE(DEPT_CODE, JOB_CODE)
+ORDER BY 1, 2;
+
+-- GROUPING(컬럼명)
+-- 해당 컬럼의 값이 자동 집계된 컬럼 값인지
+-- 확인하기 위한 함수
+-- 컬럼의 값이 자동으로 만들어진 값이면 1,
+-- 원래 있던 컬럼의 값이면 0
 
 
+SELECT DEPT_CODE, JOB_CODE, SUM(SALARY),
+    GROUPING(DEPT_CODE) "부서별 자동 집계 유무",
+    GROUPING(JOB_CODE) "직급별 자동 집계 유무"
+FROM EMPLOYEE
+GROUP BY ROLLUP(DEPT_CODE, JOB_CODE)
+ORDER BY 1,2;
+    
+-- GROUPING 응용 --
 
-
-
-
+-- 각 컬럼의 결과가 자동 집계된 결과인지 확인하는 SQL
+SELECT 
+    DEPT_CODE, JOB_CODE, SUM(SALARY),
+    CASE
+        WHEN GROUPING(DEPT_CODE) = 0
+        AND GROUPING(JOB_CODE) = 1
+            THEN '부서별 합계'
+        WHEN GROUPING(DEPT_CODE) = 1
+        AND GROUPING(JOB_CODE) = 0
+            THEN '직급별 합계'
+        WHEN GROUPING(DEPT_CODE) = 0
+        AND GROUPING(JOB_CODE) = 0
+            THEN '그룹별 합계'
+        ELSE
+            '전체 합계'
+    END AS 구분
+FROM EMPLOYEE
+GROUP BY CUBE(DEPT_CODE, JOB_CODE)
+ORDER BY 1, 2;
+        
